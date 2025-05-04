@@ -16,8 +16,8 @@ var commandFuncMap = map[string]func(e *editor.Editor){
 	"q!": quitWithoutSaving,
 }
 
-// ProcessCommandInput handles a single key press when in Command mode.
-func ProcessCommandInput(e *editor.Editor, key byte) {
+// processCommandInput handles a single key press when in Command mode.
+func processCommandInput(e *editor.Editor, key byte) {
 	switch key {
 	case terminal.KeyEsc:
 		e.CurrentMode = editor.ModeNormal
@@ -100,4 +100,9 @@ func QuitEditor(e *editor.Editor) {
 // quitWithoutSaving signals the main loop to exit regardless of dirty state.
 func quitWithoutSaving(e *editor.Editor) {
 	e.ShouldQuit = true
+}
+
+// HandleCommandKey processes a key press received while in command mode.
+func HandleCommandKey(e *editor.Editor, key byte) {
+	processCommandInput(e, key)
 }

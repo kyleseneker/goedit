@@ -16,7 +16,7 @@ func ProcessInput(e *editor.Editor, key byte) {
 	case editor.ModeInsert:
 		processInsertModeInput(e, key)
 	case editor.ModeCommand:
-		cmd.ProcessCommandInput(e, key)
+		cmd.HandleCommandKey(e, key)
 	case editor.ModeFileNamePrompt:
 		processFileNamePrompt(e, key)
 	}

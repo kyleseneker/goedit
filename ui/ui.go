@@ -70,8 +70,8 @@ func drawTextRows(e *editor.Editor, buf *bytes.Buffer) {
 
 // drawStatusBar renders the status bar at the bottom line.
 func drawStatusBar(e *editor.Editor, buf *bytes.Buffer) {
-	buf.WriteString(fmt.Sprintf("\x1b[%d;%dH", e.TermHeight, 1))
-	buf.WriteString("\x1b[7m")
+	fmt.Fprintf(buf, "\x1b[%d;%dH", e.TermHeight, 1) // Move to last line
+	buf.WriteString("\x1b[7m")                       // Invert colors
 
 	// Message content logic
 	msg := ""
@@ -137,6 +137,5 @@ func positionCursor(e *editor.Editor, buf *bytes.Buffer) {
 		screenCursorX = e.TermWidth
 	}
 
-	cursorPosCmd := fmt.Sprintf("\x1b[%d;%dH", screenCursorY, screenCursorX)
-	buf.WriteString(cursorPosCmd)
+	fmt.Fprintf(buf, "\x1b[%d;%dH", screenCursorY, screenCursorX)
 }

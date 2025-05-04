@@ -122,7 +122,4 @@ func TestSaveFile(t *testing.T) {
 		}
 		// Note: Cannot assert exact success message content as it includes filename
 	})
-
-	// Cleanup potential dummy file if test framework doesn't handle it
-	// os.Remove("test_save.txt") // No longer needed thanks to t.TempDir()
 }
