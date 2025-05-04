@@ -23,7 +23,7 @@ func ProcessInput(e *editor.Editor, key byte) {
 }
 
 // processNormalModeInput handles input when in Normal mode.
-func processNormalModeInput(e *editor.Editor, key byte) { // Keep unexported
+func processNormalModeInput(e *editor.Editor, key byte) {
 	switch key {
 	case 'q': // Do nothing (require :q)
 	case 'i':
@@ -63,14 +63,14 @@ func processNormalModeInput(e *editor.Editor, key byte) { // Keep unexported
 }
 
 // processInsertModeInput handles input when in Insert mode.
-func processInsertModeInput(e *editor.Editor, key byte) { // Keep unexported
+func processInsertModeInput(e *editor.Editor, key byte) {
 	switch key {
 	case terminal.KeyEsc:
 		e.CurrentMode = editor.ModeNormal
 		e.StatusMessageTime = time.Time{}
-	case 13: // Enter
+	case 13:
 		e.InsertNewline()
-	case 127, 8: // Backspace
+	case 127, 8:
 		e.DeleteChar()
 	case terminal.KeyArrowUp:
 		if e.CursorY > 0 {
@@ -117,18 +117,18 @@ func processFileNamePrompt(e *editor.Editor, key byte) {
 		// Cancel prompt
 		e.SetStatusMessage("Save aborted.")
 		e.CurrentMode = editor.ModeNormal
-		e.CommandBuffer = "" // Clear buffer
-	case 13: // Enter
+		e.CommandBuffer = ""
+	case 13:
 		filename := e.CommandBuffer
 		if filename == "" { // No filename entered
 			e.SetStatusMessage("Save aborted.")
 			e.CurrentMode = editor.ModeNormal
 		} else {
 			e.Filename = filename
-			e.SetStatusMessage("") // Clear prompt message
+			e.SetStatusMessage("")
 			// Note: SaveFile might set its own status message ("saved" or "error")
 			// Don't change mode here yet, let SaveFile finish
-			attemptedSave := cmd.SaveFile(e) // Call save again, now with filename
+			attemptedSave := cmd.SaveFile(e)
 
 			if attemptedSave {
 				// If save was attempted (even if it failed), check if we need to quit.
@@ -146,15 +146,14 @@ func processFileNamePrompt(e *editor.Editor, key byte) {
 			e.CurrentMode = editor.ModeNormal
 			e.PromptOriginCommand = "" // Clear origin after handling
 		}
-		e.CommandBuffer = "" // Clear buffer
-	case 127, 8: // Backspace
+		e.CommandBuffer = ""
+	case 127, 8:
 		if len(e.CommandBuffer) > 0 {
 			e.CommandBuffer = e.CommandBuffer[:len(e.CommandBuffer)-1]
 			// Update prompt dynamically
 			e.SetStatusMessage("Save file as: " + e.CommandBuffer)
 		}
 	default:
-		// Allow printable ASCII chars for filename
 		if key >= 32 && key <= 126 {
 			e.CommandBuffer += string(key)
 			newPrompt := "Save file as: " + e.CommandBuffer

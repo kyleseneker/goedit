@@ -43,9 +43,8 @@ func NewEditor(width, height int) *Editor {
 		CursorY:       0,
 		RowOffset:     0,
 		ColOffset:     0,
-		EditorContent: []string{""}, // Start with one empty line
+		EditorContent: []string{""},
 		CurrentMode:   ModeNormal,
-		// filename, etc. initialized as zero values
 	}
 }
 
@@ -92,14 +91,14 @@ func (e *Editor) InsertNewline() {
 	e.EditorContent = append(e.EditorContent[:e.CursorY+1], append([]string{nextLine}, e.EditorContent[e.CursorY+1:]...)...)
 
 	e.CursorY++
-	e.CursorX = 0 // Move cursor to beginning of the new line
+	e.CursorX = 0
 	e.IsDirty = true
 }
 
 // DeleteChar handles backspace: deleting char or joining lines.
 func (e *Editor) DeleteChar() {
 	if e.CursorX == 0 && e.CursorY == 0 {
-		return // Cannot delete at start of file
+		return
 	}
 
 	originalContentLen := len(e.EditorContent)
@@ -115,21 +114,20 @@ func (e *Editor) DeleteChar() {
 		prevLine := e.EditorContent[prevLineIndex]
 		newCursorX := len(prevLine)
 		e.EditorContent[prevLineIndex] = prevLine + currentLine
-		// Remove current line from slice
+		// Remove current line
 		e.EditorContent = append(e.EditorContent[:e.CursorY], e.EditorContent[e.CursorY+1:]...)
 		e.CursorY--
 		e.CursorX = newCursorX
-	} else { // Within a line
-		e.ensureLineExists(e.CursorY) // Should already exist if cursorX > 0
+	} else {
+		e.ensureLineExists(e.CursorY)
 		line := e.EditorContent[e.CursorY]
 		// TODO: Adjust for colOffset
 		if e.CursorX > 0 && e.CursorX <= len(line) {
-			// Delete character before cursor
 			line = line[:e.CursorX-1] + line[e.CursorX:]
 			e.EditorContent[e.CursorY] = line
 			e.CursorX--
-		} else if e.CursorX > 0 { // Cursor is past the end of the line content
-			e.CursorX-- // Just move cursor back
+		} else if e.CursorX > 0 {
+			e.CursorX--
 		}
 	}
 
@@ -137,7 +135,6 @@ func (e *Editor) DeleteChar() {
 	if len(e.EditorContent) != originalContentLen || (e.CursorY < len(e.EditorContent) && len(e.EditorContent[e.CursorY]) != originalLineLen) {
 		e.IsDirty = true
 	}
-
 }
 
 // EnsureCursorBounds adjusts cursorX if it's beyond the end of the current line

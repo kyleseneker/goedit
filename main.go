@@ -42,19 +42,16 @@ func main() {
 	}
 	defer terminal.DisableRawMode(originalState)
 
-	// Initial screen draw using ui package
 	ui.RefreshScreen(ed)
-	// fmt.Print("\x1b[2J\x1b[H") // Remove temporary initial clear
 
 	// Main input loop
 	for {
-		key := terminal.ReadKey() // Use terminal package
+		key := terminal.ReadKey()
 
-		input.ProcessInput(ed, key) // Use input package
+		input.ProcessInput(ed, key)
 
-		ui.RefreshScreen(ed) // Use ui package
+		ui.RefreshScreen(ed)
 
-		// Check if a quit command set the flag
 		if ed.ShouldQuit {
 			break // Exit the loop gracefully
 		}

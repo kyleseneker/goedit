@@ -13,10 +13,10 @@ import (
 const (
 	KeyNull       byte = 0
 	KeyEsc        byte = 27
-	KeyArrowUp    byte = 250 // Arbitrary value
-	KeyArrowDown  byte = 251 // Arbitrary value
-	KeyArrowLeft  byte = 252 // Arbitrary value
-	KeyArrowRight byte = 253 // Arbitrary value
+	KeyArrowUp    byte = 250
+	KeyArrowDown  byte = 251
+	KeyArrowLeft  byte = 252
+	KeyArrowRight byte = 253
 	// TODO: Add PageUp, PageDown, Home, End, Del
 )
 
@@ -31,12 +31,10 @@ func EnableRawMode() (*unix.Termios, error) {
 		return nil, fmt.Errorf("error getting initial termios: %w", err)
 	}
 
-	// Apply raw mode settings using golang.org/x/term
-	// We still use this for convenience, it sets many flags correctly.
-	// It modifies the underlying terminal state.
-	_, err = term.MakeRaw(fd) // Note: term.MakeRaw might already try to set VMIN/VTIME on some OSes
+	// Apply raw mode settings
+	_, err = term.MakeRaw(fd)
 	if err != nil {
-		_ = unix.IoctlSetTermios(fd, unix.TIOCSETA, originalTermios)
+		_ = unix.IoctlSetTermios(fd, unix.TIOCSETA, originalTermios) // Restore on error
 		return nil, fmt.Errorf("error setting terminal to raw mode: %w", err)
 	}
 
@@ -44,7 +42,7 @@ func EnableRawMode() (*unix.Termios, error) {
 	// This ensures our desired settings override any defaults from MakeRaw.
 	currentTermios, err := unix.IoctlGetTermios(fd, unix.TIOCGETA)
 	if err != nil {
-		_ = unix.IoctlSetTermios(fd, unix.TIOCSETA, originalTermios) // Restore on GetState failure
+		_ = unix.IoctlSetTermios(fd, unix.TIOCSETA, originalTermios) // Restore on error
 		return nil, fmt.Errorf("error getting termios after MakeRaw: %w", err)
 	}
 
@@ -52,25 +50,23 @@ func EnableRawMode() (*unix.Termios, error) {
 	currentTermios.Cc[unix.VMIN] = 0
 	currentTermios.Cc[unix.VTIME] = 1
 
-	// Apply the final state with our VMIN/VTIME settings
+	// Apply the final state
 	err = unix.IoctlSetTermios(fd, unix.TIOCSETA, currentTermios)
 	if err != nil {
-		_ = unix.IoctlSetTermios(fd, unix.TIOCSETA, originalTermios) // Restore on SetState failure
+		_ = unix.IoctlSetTermios(fd, unix.TIOCSETA, originalTermios) // Restore on error
 		return nil, fmt.Errorf("error setting final termios (VMIN/VTIME): %w", err)
 	}
 
-	// Enter alternate screen buffer
-	fmt.Print("\x1b[?1049h")
+	fmt.Print("\x1b[?1049h") // Enter alternate screen buffer
 
-	return originalTermios, nil // Return the original termios state for restoration
+	return originalTermios, nil
 }
 
 // DisableRawMode restores the terminal to its original termios state.
 func DisableRawMode(originalTermios *unix.Termios) {
 	fd := int(os.Stdin.Fd())
 
-	// Leave alternate screen buffer
-	fmt.Print("\x1b[?1049l")
+	fmt.Print("\x1b[?1049l") // Leave alternate screen buffer
 
 	fmt.Print("\x1b[2J\x1b[H")
 	if originalTermios != nil {
@@ -101,11 +97,10 @@ func ReadKey() byte {
 		n_seq, err_seq := os.Stdin.Read(readBuf[1:])
 
 		if err_seq != nil {
-			// Error during sequence read (less likely, maybe interrupted?)
 			return KeyEsc // Assume it was just Esc
 		}
 
-		if n_seq >= 2 && readBuf[1] == '[' { // CSI sequence: Esc[...
+		if n_seq >= 2 && readBuf[1] == '[' {
 			switch readBuf[2] {
 			case 'A':
 				return KeyArrowUp
@@ -117,15 +112,15 @@ func ReadKey() byte {
 				return KeyArrowLeft
 				// TODO: Add Home, End, PgUp, PgDn, Del sequences
 			}
-			return KeyEsc // Unrecognized Esc[...] sequence
+			return KeyEsc
 		} else if n_seq >= 1 { // Esc followed by something else (e.g., Alt+key?)
-			return KeyEsc // Treat as plain Esc for now
-		} else { // n_seq == 0
+			return KeyEsc
+		} else {
 			return KeyEsc
 		}
 	}
 
-	return key // Not an escape sequence
+	return key
 }
 
 // GetSize returns the current width and height of the terminal.

@@ -16,7 +16,6 @@ import (
 func RefreshScreen(e *editor.Editor) {
 	var screenBuf bytes.Buffer
 
-	// Update terminal size state
 	var err error
 	e.TermWidth, e.TermHeight, err = terminal.GetSize()
 	if err != nil {
@@ -24,10 +23,8 @@ func RefreshScreen(e *editor.Editor) {
 		log.Printf("Error getting terminal size: %v", err)
 	}
 
-	// Hide cursor during redraw for less flicker
-	screenBuf.WriteString("\x1b[?25l")
-	// Move cursor to home position before drawing
-	screenBuf.WriteString("\x1b[H")
+	screenBuf.WriteString("\x1b[?25l") // Hide cursor
+	screenBuf.WriteString("\x1b[H")    // Move cursor home
 
 	// Draw visible portion of the file content
 	drawTextRows(e, &screenBuf)
@@ -38,10 +35,8 @@ func RefreshScreen(e *editor.Editor) {
 	// Position the actual terminal cursor
 	positionCursor(e, &screenBuf)
 
-	// Show cursor again
-	screenBuf.WriteString("\x1b[?25h")
+	screenBuf.WriteString("\x1b[?25h") // Show cursor
 
-	// Write the buffer to the screen
 	_, err = os.Stdout.Write(screenBuf.Bytes())
 	if err != nil {
 		log.Printf("Error writing to stdout: %v", err)
@@ -49,26 +44,23 @@ func RefreshScreen(e *editor.Editor) {
 }
 
 // drawTextRows draws the visible lines of the file content or tildes.
-func drawTextRows(e *editor.Editor, buf *bytes.Buffer) { // Keep unexported, helper for RefreshScreen
-	for y := 0; y < e.TermHeight-1; y++ { // Iterate through screen rows (except status bar)
+func drawTextRows(e *editor.Editor, buf *bytes.Buffer) {
+	for y := 0; y < e.TermHeight-1; y++ {
 		fileRow := e.RowOffset + y
 
 		if fileRow >= len(e.EditorContent) {
-			// Draw tilde for rows below the file content
-			buf.WriteString("~")
+			buf.WriteString("~") // Draw tilde
 		} else {
-			// Draw line from buffer content
 			line := e.EditorContent[fileRow]
 			// TODO: Handle colOffset for horizontal scrolling
 			lineLen := len(line)
 			if lineLen > e.TermWidth {
-				line = line[:e.TermWidth] // Truncate long lines for now
+				line = line[:e.TermWidth] // Truncate long lines
 			}
 			buf.WriteString(line)
 		}
 
-		// Clear rest of the screen line
-		buf.WriteString("\x1b[K")
+		buf.WriteString("\x1b[K") // Clear rest of line
 		// Add newline (except for the last text row before status bar)
 		if y < e.TermHeight-2 {
 			buf.WriteString("\r\n")
@@ -77,22 +69,20 @@ func drawTextRows(e *editor.Editor, buf *bytes.Buffer) { // Keep unexported, hel
 }
 
 // drawStatusBar renders the status bar at the bottom line.
-func drawStatusBar(e *editor.Editor, buf *bytes.Buffer) { // Keep unexported, helper for RefreshScreen
-	buf.WriteString(fmt.Sprintf("\x1b[%d;%dH", e.TermHeight, 1)) // Move to last line
-	buf.WriteString("\x1b[7m")                                   // Invert colors
+func drawStatusBar(e *editor.Editor, buf *bytes.Buffer) {
+	buf.WriteString(fmt.Sprintf("\x1b[%d;%dH", e.TermHeight, 1))
+	buf.WriteString("\x1b[7m")
 
 	// Message content logic
 	msg := ""
 	if e.CurrentMode == editor.ModeCommand {
 		msg = ":" + e.CommandBuffer
 	} else if e.CurrentMode == editor.ModeFileNamePrompt {
-		// Show filename prompt (status message already set)
 		msg = e.StatusMessage
 	} else if time.Since(e.StatusMessageTime) < 5*time.Second {
 		msg = e.StatusMessage
 	} else {
-		// e.SetStatusMessage("") // Don't call setter, just clear the text field
-		e.StatusMessage = "" // Clear expired message text
+		e.StatusMessage = ""
 		modeStr := "NORMAL"
 		if e.CurrentMode == editor.ModeInsert {
 			modeStr = "INSERT"
@@ -101,7 +91,7 @@ func drawStatusBar(e *editor.Editor, buf *bytes.Buffer) { // Keep unexported, he
 		if fn == "" {
 			fn = "[No Name]"
 		}
-		if e.IsDirty { // Add dirty indicator
+		if e.IsDirty {
 			fn += " +"
 		}
 		maxFnLen := 20
@@ -128,18 +118,18 @@ func drawStatusBar(e *editor.Editor, buf *bytes.Buffer) { // Keep unexported, he
 }
 
 // positionCursor moves the terminal cursor to the calculated screen position.
-func positionCursor(e *editor.Editor, buf *bytes.Buffer) { // Keep unexported, helper for RefreshScreen
+func positionCursor(e *editor.Editor, buf *bytes.Buffer) {
 	// Calculate screen position based on file cursor and viewport offset
-	screenCursorY := e.CursorY - e.RowOffset + 1 // Convert to 1-based row
-	screenCursorX := e.CursorX - e.ColOffset + 1 // Convert to 1-based col
+	screenCursorY := e.CursorY - e.RowOffset + 1
+	screenCursorX := e.CursorX - e.ColOffset + 1
 
-	// Clamp cursor position to valid screen area (1 to termHeight-1, 1 to termWidth)
+	// Clamp cursor position to valid screen area
 	if screenCursorY < 1 {
 		screenCursorY = 1
 	}
 	if screenCursorY >= e.TermHeight {
 		screenCursorY = e.TermHeight - 1
-	} // Stay above status bar
+	}
 	if screenCursorX < 1 {
 		screenCursorX = 1
 	}
