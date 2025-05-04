@@ -165,28 +165,28 @@ func (e *Editor) LoadFile(content []byte) {
 	// Replace CRLF with LF and split into lines
 	fileStr := string(content)
 	fileStr = strings.ReplaceAll(fileStr, "\r\n", "\n")
-	e.EditorContent = strings.Split(fileStr, "\n")
+	lines := strings.Split(fileStr, "\n")
 
-	// Handle files ending with newline correctly (split adds trailing "")
-	if len(e.EditorContent) > 0 && e.EditorContent[len(e.EditorContent)-1] == "" {
-		if len(fileStr) > 0 && fileStr != "\n" {
-			// File had content and ended with \n, remove the empty string from split
-			e.EditorContent = e.EditorContent[:len(e.EditorContent)-1]
-		} // Keep the single "" if the file was empty or just "\n"
+	// If the original content ended with a newline, Split leaves a trailing empty string.
+	// We usually want to remove this, unless the file ONLY contained newlines.
+	if len(lines) > 1 && lines[len(lines)-1] == "" {
+		lines = lines[:len(lines)-1]
 	}
-	// Ensure at least one empty line exists if file was truly empty
-	if len(e.EditorContent) == 0 {
+
+	// Ensure that if the file was empty or only contained newline(s),
+	// we end up with a single empty string slice.
+	if len(lines) == 0 || (len(lines) == 1 && lines[0] == "") {
 		e.EditorContent = []string{""}
+	} else {
+		e.EditorContent = lines
 	}
-	e.IsDirty = false // Loading resets dirty flag
+
+	e.IsDirty = false
 }
 
 // ContentAsString joins the editor content into a single string for saving.
 func (e *Editor) ContentAsString() string {
 	content := strings.Join(e.EditorContent, "\n")
-	// Ensure file ends with a newline
-	if len(content) > 0 {
-		content += "\n"
-	}
+	content += "\n" // Always add trailing newline for POSIX compatibility
 	return content
 }
